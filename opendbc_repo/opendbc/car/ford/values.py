@@ -6,8 +6,7 @@ from enum import Enum, IntFlag
 from opendbc.car import Bus, CarSpecs, DbcDict, PlatformConfig, Platforms, uds
 from opendbc.car.lateral import AngleSteeringLimits
 from opendbc.car.structs import CarParams
-from opendbc.car.docs_definitions import CarFootnote, CarHarness, CarDocs, CarParts, Column, \
-                                                     Device
+from opendbc.car.docs_definitions import CarFootnote, CarHarness, CarDocs, CarParts, Column
 from opendbc.car.fw_query_definitions import FwQueryConfig, LiveFwVersions, OfflineFwVersions, Request, StdQueries, p16
 
 Ecu = CarParams.Ecu
@@ -75,10 +74,7 @@ class FordCarDocs(CarDocs):
 
   def init_make(self, CP: CarParams):
     harness = CarHarness.ford_q4 if CP.flags & FordFlags.CANFD else CarHarness.ford_q3
-    if CP.carFingerprint in (CAR.FORD_BRONCO_SPORT_MK1, CAR.FORD_MAVERICK_MK1, CAR.FORD_F_150_MK14, CAR.FORD_F_150_LIGHTNING_MK1):
-      self.car_parts = CarParts([Device.threex_angled_mount, harness])
-    else:
-      self.car_parts = CarParts([Device.threex, harness])
+    self.car_parts = CarParts.common([harness])
 
     if harness == CarHarness.ford_q4:
       self.setup_video = "https://www.youtube.com/watch?v=uUGkH6C_EQU"
@@ -125,6 +121,10 @@ class FordF150LightningPlatform(FordCANFDPlatformConfig):
 
 
 class CAR(Platforms):
+  FORD_BRONCO_MK6 = FordPlatformConfig(
+    [FordCarDocs("Ford Bronco 2021-24", "Adaptive Cruise Control with Lane Centering")],
+    CarSpecs(mass=2013, wheelbase=2.95, steerRatio=17.0),
+  )
   FORD_BRONCO_SPORT_MK1 = FordPlatformConfig(
     [FordCarDocs("Ford Bronco Sport 2021-24")],
     CarSpecs(mass=1625, wheelbase=2.67, steerRatio=17.7),
@@ -296,7 +296,6 @@ FW_QUERY_CONFIG = FwQueryConfig(
       [StdQueries.TESTER_PRESENT_RESPONSE, StdQueries.MANUFACTURER_SOFTWARE_VERSION_RESPONSE],
       whitelist_ecus=[Ecu.abs, Ecu.debug, Ecu.engine, Ecu.eps, Ecu.fwdCamera, Ecu.fwdRadar, Ecu.shiftByWire],
       bus=0,
-      auxiliary=True,
     ),
     *[Request(
       [StdQueries.TESTER_PRESENT_REQUEST, ford_asbuilt_block_request(block_id)],

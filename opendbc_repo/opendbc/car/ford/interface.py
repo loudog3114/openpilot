@@ -6,7 +6,7 @@ from opendbc.car.ford.carcontroller import CarController
 from opendbc.car.ford.carstate import CarState
 from opendbc.car.ford.fordcan import CanBus
 from opendbc.car.ford.radar_interface import RadarInterface
-from opendbc.car.ford.values import CarControllerParams, DBC, Ecu, FordFlags, RADAR, FordSafetyFlags
+from opendbc.car.ford.values import CAR, CarControllerParams, DBC, Ecu, FordFlags, RADAR, FordSafetyFlags
 from opendbc.car.interfaces import CarInterfaceBase
 
 TransmissionType = structs.CarParams.TransmissionType
@@ -16,6 +16,8 @@ class CarInterface(CarInterfaceBase):
   CarState = CarState
   CarController = CarController
   RadarInterface = RadarInterface
+
+  DRIVABLE_GEARS = (structs.CarState.GearShifter.low, structs.CarState.GearShifter.manumatic)
 
   @staticmethod
   def get_pid_accel_limits(CP, current_speed, cruise_speed):
@@ -30,6 +32,8 @@ class CarInterface(CarInterfaceBase):
     ret.brand = "ford"
 
     ret.radarUnavailable = Bus.radar not in DBC[candidate]
+    if candidate == CAR.FORD_BRONCO_MK6:
+      ret.radarUnavailable = True
     ret.steerControlType = structs.CarParams.SteerControlType.angle
     ret.steerActuatorDelay = 0.2
     ret.steerLimitTimer = 1.0
@@ -50,7 +54,7 @@ class CarInterface(CarInterfaceBase):
     ret.safetyConfigs = cfgs
 
     ret.alphaLongitudinalAvailable = ret.radarUnavailable
-    if alpha_long or not ret.radarUnavailable:
+    if alpha_long or not ret.radarUnavailable or candidate == CAR.FORD_BRONCO_MK6:
       ret.safetyConfigs[-1].safetyParam |= FordSafetyFlags.LONG_CONTROL.value
       ret.openpilotLongitudinalControl = True
 
@@ -85,6 +89,10 @@ class CarInterface(CarInterfaceBase):
     else:
       ret.transmissionType = TransmissionType.manual
       ret.minEnableSpeed = 20.0 * CV.MPH_TO_MS
+
+    # Full-size Bronco bring-up data was captured on an automatic platform.
+    if candidate == CAR.FORD_BRONCO_MK6:
+      ret.transmissionType = TransmissionType.automatic
 
     # BSM: Side_Detect_L_Stat, Side_Detect_R_Stat
     # TODO: detect bsm in car_fw?

@@ -19,6 +19,7 @@ class CarState(CarStateBase):
 
     self.distance_button = 0
     self.lc_button = 0
+    self.lkas_available = True
 
   def update(self, can_parsers) -> structs.CarState:
     cp = can_parsers[Bus.pt]
@@ -55,6 +56,8 @@ class CarState(CarStateBase):
     if self.CP.flags & FordFlags.CANFD:
       # this signal is always 0 on non-CAN FD cars
       ret.steerFaultTemporary |= cp.vl["Lane_Assist_Data3_FD1"]["LatCtlSte_D_Stat"] not in (1, 2, 3)
+
+    self.lkas_available = cp.vl["Lane_Assist_Data3_FD1"]["LaActAvail_D_Actl"] == 3
 
     # cruise state
     is_metric = cp.vl["INSTRUMENT_PANEL"]["METRIC_UNITS"] == 1 if not self.CP.flags & FordFlags.CANFD else False
@@ -107,7 +110,8 @@ class CarState(CarStateBase):
     # Stock values from IPMA so that we can retain some stock functionality
     self.acc_tja_status_stock_values = cp_cam.vl["ACCDATA_3"]
     self.lkas_status_stock_values = cp_cam.vl["IPMA_Data"]
-
+    # Stock lane centering
+    self.lateral_motion_control = cp_cam.vl["LateralMotionControl"]
     ret.buttonEvents = [
       *create_button_events(self.distance_button, prev_distance_button, {1: ButtonType.gapAdjustCruise}),
       *create_button_events(self.lc_button, prev_lc_button, {1: ButtonType.lkas}),
