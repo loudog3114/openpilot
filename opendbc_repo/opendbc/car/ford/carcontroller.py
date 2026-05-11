@@ -179,7 +179,7 @@ class CarController(CarControllerBase):
         else:
           near_timeout = False
 
-        if CC.latActive and lkas_available and not near_timeout:
+        if CC.latActive and not near_timeout:   # Bypass lkas_available for manual
           new_direction = 2 if CS.out.steeringAngleDeg > 0 else 4
         else:
           new_direction = 0
