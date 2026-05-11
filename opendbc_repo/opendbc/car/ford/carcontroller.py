@@ -110,8 +110,8 @@ class CarController(CarControllerBase):
 
     actuators = CC.actuators
     hud_control = CC.hudControl
-    lkas_available = getattr(CS, "lkas_available", True)
-
+    # lkas_available = getattr(CS, "lkas_available", True)
+    lkas_available = True   # Force enabled for manual Bronco
     main_on = CS.out.cruiseState.available
     steer_alert = hud_control.visualAlert in (VisualAlert.steerRequired, VisualAlert.ldw)
     fcw_alert = hud_control.visualAlert == VisualAlert.fcw
@@ -185,7 +185,7 @@ class CarController(CarControllerBase):
           new_direction = 0
 
         ramp_type = 1 if abs(apply_angle) >= 5 else 0
-        can_sends.append(fordcan.create_lka_msg(self.packer, self.CAN, CC.latActive and lkas_available,
+        can_sends.append(fordcan.create_lka_msg(self.packer, self.CAN, CC.latActive,
                                                 apply_angle, -apply_curvature, new_direction, ramp_type))
       else:
         can_sends.append(fordcan.create_lka_msg(self.packer, self.CAN, False, 0.0, 0.0, 0, 0))
