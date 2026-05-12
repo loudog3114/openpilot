@@ -41,10 +41,11 @@ class CarSpecificEvents:
       events = Events()
 
     elif self.CP.brand == 'ford':
-      is_manual = self.CP.transmissionType == TransmissionType.manual
+      from opendbc.car.ford.values import CAR
+      is_bronco_manual = self.CP.carFingerprint == CAR.FORD_BRONCO_MK6
       events = self.create_common_events(CS, CS_prev, extra_gears=[GearShifter.low, GearShifter.manumatic],
-                                         pcm_enable=not is_manual)
-      if is_manual:
+                                         pcm_enable=not is_bronco_manual)
+      if is_bronco_manual:
         if CS.cruiseState.enabled and not CS_prev.cruiseState.enabled:
           events.add(EventName.pcmEnable)
         elif not CS.cruiseState.enabled and CS_prev.cruiseState.enabled:
