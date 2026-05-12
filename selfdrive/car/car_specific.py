@@ -45,9 +45,9 @@ class CarSpecificEvents:
       events = self.create_common_events(CS, CS_prev, extra_gears=[GearShifter.low, GearShifter.manumatic],
                                          pcm_enable=not is_manual)
       if is_manual:
-        if CS.cruiseState.available and not CS_prev.cruiseState.available:
+        if CS.cruiseState.enabled and not CS_prev.cruiseState.enabled:
           events.add(EventName.pcmEnable)
-        elif not CS.cruiseState.available and CS_prev.cruiseState.available:
+        elif not CS.cruiseState.enabled and CS_prev.cruiseState.enabled:
           events.add(EventName.pcmDisable)
 
     elif self.CP.brand == 'nissan':
