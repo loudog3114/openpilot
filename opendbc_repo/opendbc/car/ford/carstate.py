@@ -19,6 +19,7 @@ class CarState(CarStateBase):
 
     self.distance_button = 0
     self.lc_button = 0
+    self.lkas_enabled = False
     self.lkas_available = True
 
   def update(self, can_parsers) -> structs.CarState:
@@ -62,7 +63,13 @@ class CarState(CarStateBase):
     # cruise state
     is_metric = cp.vl["INSTRUMENT_PANEL"]["METRIC_UNITS"] == 1 if not self.CP.flags & FordFlags.CANFD else False
     ret.cruiseState.speed = cp.vl["EngBrakeData"]["Veh_V_DsplyCcSet"] * (CV.KPH_TO_MS if is_metric else CV.MPH_TO_MS)
-    ret.cruiseState.enabled = cp.vl["EngBrakeData"]["CcStat_D_Actl"] in (4, 5)
+    tja_pressed = bool(cp.vl["Steering_Data_FD1"]["TjaButtnOnOffPress"])
+    if self.CP.carFingerprint == CAR.FORD_BRONCO_MK6 and self.CP.transmissionType == TransmissionType.manual:
+      if tja_pressed and not self.lc_button:
+        self.lkas_enabled = not self.lkas_enabled
+      ret.cruiseState.enabled = self.lkas_enabled
+    else:
+      ret.cruiseState.enabled = cp.vl["EngBrakeData"]["CcStat_D_Actl"] in (4, 5)
     ret.cruiseState.available = True if self.CP.carFingerprint == CAR.FORD_BRONCO_MK6 else cp.vl["EngBrakeData"]["CcStat_D_Actl"] in (3, 4, 5)
     ret.cruiseState.nonAdaptive = cp.vl["Cluster_Info1_FD1"]["AccEnbl_B_RqDrv"] == 0
     ret.cruiseState.standstill = cp.vl["EngBrakeData"]["AccStopMde_D_Rq"] == 3
