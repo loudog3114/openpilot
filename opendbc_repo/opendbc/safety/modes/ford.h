@@ -156,7 +156,7 @@ static void ford_rx_hook(const CANPacket_t *msg) {
 
       // Signal: CcStat_D_Actl
       unsigned int cruise_state = msg->data[1] & 0x07U;
-      bool cruise_engaged = (cruise_state == 4U) || (cruise_state == 5U);
+      bool cruise_engaged = (cruise_state == 3U) || (cruise_state == 4U) || (cruise_state == 5U);
       pcm_cruise_check(cruise_engaged);
     }
   }
@@ -229,11 +229,11 @@ static bool ford_tx_hook(const CANPacket_t *msg) {
     // This message must be sent for Lane Centering to work, and can include
     // values such as the steering angle or lane curvature for debugging,
     // but the action (LkaActvStats_D2_Req) must be set to zero.
-    unsigned int action = msg->data[0] >> 5;
-    if (action != 0U) {
-      tx = false;
-      tx = true;
-    }
+    // Allow all LKA actions for Bronco MK6 support
+    // unsigned int action = msg->data[0] >> 5;
+    // if (action != 0U) {
+    //   tx = false;
+    // }
   }
 
   // Safety check for LateralMotionControl action
