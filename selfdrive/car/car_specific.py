@@ -7,6 +7,7 @@ from openpilot.selfdrive.selfdrived.events import Events
 
 ButtonType = structs.CarState.ButtonEvent.Type
 GearShifter = structs.CarState.GearShifter
+TransmissionType = structs.CarParams.TransmissionType
 EventName = log.OnroadEvent.EventName
 NetworkLocation = structs.CarParams.NetworkLocation
 
@@ -40,7 +41,14 @@ class CarSpecificEvents:
       events = Events()
 
     elif self.CP.brand == 'ford':
-      events = self.create_common_events(CS, CS_prev, extra_gears=[GearShifter.low, GearShifter.manumatic])
+      is_manual = self.CP.transmissionType == TransmissionType.manual
+      events = self.create_common_events(CS, CS_prev, extra_gears=[GearShifter.low, GearShifter.manumatic],
+                                         pcm_enable=not is_manual)
+      if is_manual:
+        if CS.cruiseState.available and not CS_prev.cruiseState.available:
+          events.add(EventName.pcmEnable)
+        elif not CS.cruiseState.available and CS_prev.cruiseState.available:
+          events.add(EventName.pcmDisable)
 
     elif self.CP.brand == 'nissan':
       events = self.create_common_events(CS, CS_prev, extra_gears=[GearShifter.brake])
