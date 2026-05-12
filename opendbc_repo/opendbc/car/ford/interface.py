@@ -91,11 +91,9 @@ class CarInterface(CarInterfaceBase):
       ret.minEnableSpeed = 20.0 * CV.MPH_TO_MS
 
     # Full-size Bronco bring-up data was captured on an automatic platform.
-    # But we respect actual transmission type for manual Broncos
     if candidate == CAR.FORD_BRONCO_MK6:
-      # Do not override - let the detection logic above handle manual vs automatic
-      pass
-
+      ret.transmissionType = TransmissionType.automatic
+      
     # BSM: Side_Detect_L_Stat, Side_Detect_R_Stat
     # TODO: detect bsm in car_fw?
     ret.enableBsm = 0x3A6 in fingerprint[CAN.main] and 0x3A7 in fingerprint[CAN.main]
