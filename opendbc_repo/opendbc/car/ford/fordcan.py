@@ -96,7 +96,7 @@ def create_lat_ctl_msg(packer, CAN: CanBus, lat_active: bool, lateral_motion_con
     "LatCtlCurv_NoRate_Actl": 0.0,                                                      # Curvature rate [-0.001024|0.00102375] 1/meter^2
     "LatCtlCurv_No_Actl": apply_curvature,                                              # Curvature [-0.02|0.02094] 1/meter
   }
-  return packer.make_can_msg("LateralMotionControl", CAN.main, values)
+  return packer.make_can_msg("LateralMotionControl", CAN.camera, values)
 
 
 def create_lat_ctl2_msg(packer, CAN: CanBus, mode: int, path_offset: float, path_angle: float, curvature: float,
