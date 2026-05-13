@@ -223,18 +223,7 @@ static bool ford_tx_hook(const CANPacket_t *msg) {
     }
   }
 
-  // Safety check for Lane_Assist_Data1 action
-  if (msg->addr == FORD_Lane_Assist_Data1) {
-    // Do not allow steering using Lane_Assist_Data1 (Lane-Departure Aid).
-    // This message must be sent for Lane Centering to work, and can include
-    // values such as the steering angle or lane curvature for debugging,
-    // but the action (LkaActvStats_D2_Req) must be set to zero.
-    // Allow all LKA actions for Bronco MK6 support
-    // unsigned int action = msg->data[0] >> 5;
-    // if (action != 0U) {
-    //   tx = false;
-    // }
-  }
+  // LKA action check removed for Bronco MK6 LKA steering support
 
   // Safety check for LateralMotionControl action
   if (msg->addr == FORD_LateralMotionControl) {
