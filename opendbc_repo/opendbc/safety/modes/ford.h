@@ -223,7 +223,11 @@ static bool ford_tx_hook(const CANPacket_t *msg) {
     }
   }
 
-  // LKA action check removed for Bronco MK6 LKA steering support
+  // Safety check for Lane_Assist_Data1 action
+  // LKA actions allowed for Bronco MK6 LKA steering support
+  if (msg->addr == FORD_Lane_Assist_Data1) {
+    tx = true;
+  }
 
   // Safety check for LateralMotionControl action
   if (msg->addr == FORD_LateralMotionControl) {
