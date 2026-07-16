@@ -112,6 +112,9 @@ class Soundd:
   def get_audible_alert(self, sm):
     if sm.updated['selfdriveState']:
       new_alert = sm['selfdriveState'].alertSound.raw
+      # Silence engage/disengage chimes (all safety/driver-monitoring alerts still play).
+      if new_alert in (AudibleAlert.engage, AudibleAlert.disengage):
+        new_alert = AudibleAlert.none
       self.update_alert(new_alert)
     elif check_selfdrive_timeout_alert(sm):
       self.update_alert(AudibleAlert.warningImmediate)
