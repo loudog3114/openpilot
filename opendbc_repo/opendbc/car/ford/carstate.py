@@ -9,6 +9,11 @@ ButtonType = structs.CarState.ButtonEvent.Type
 GearShifter = structs.CarState.GearShifter
 TransmissionType = structs.CarParams.TransmissionType
 
+# The Ford PCM briefly reports a cruise fault (CcStat_D_Actl in (1, 2)) for a frame or two while
+# transitioning cruise states, e.g. resuming shortly after a cancel. Debounce it so these transients
+# don't immediately disengage. ~0.3s at the 100Hz carState rate; a real fault persists and still disengages.
+ACC_FAULT_DEBOUNCE_FRAMES = 30
+
 
 class CarState(CarStateBase):
   def __init__(self, CP):
@@ -20,6 +25,8 @@ class CarState(CarStateBase):
     self.distance_button = 0
     self.lc_button = 0
     self.lkas_available = True
+    self.acc_fault_frames = 0
+    self.last_valid_cc_stat = 3  # last non-fault CcStat_D_Actl; 3 = cruise available/standby
 
   def update(self, can_parsers) -> structs.CarState:
     cp = can_parsers[Bus.pt]
@@ -62,11 +69,22 @@ class CarState(CarStateBase):
     # cruise state
     is_metric = cp.vl["INSTRUMENT_PANEL"]["METRIC_UNITS"] == 1 if not self.CP.flags & FordFlags.CANFD else False
     ret.cruiseState.speed = cp.vl["EngBrakeData"]["Veh_V_DsplyCcSet"] * (CV.KPH_TO_MS if is_metric else CV.MPH_TO_MS)
-    ret.cruiseState.enabled = cp.vl["EngBrakeData"]["CcStat_D_Actl"] in (4, 5)
-    ret.cruiseState.available = True if self.CP.carFingerprint == CAR.FORD_BRONCO_MK6 else cp.vl["EngBrakeData"]["CcStat_D_Actl"] in (3, 4, 5)
+
+    # Debounce transient PCM cruise-fault states so a brief blip on resume does not immediately disengage.
+    cc_stat = cp.vl["EngBrakeData"]["CcStat_D_Actl"]
+    if cc_stat in (1, 2):
+      self.acc_fault_frames += 1
+      if self.acc_fault_frames < ACC_FAULT_DEBOUNCE_FRAMES:
+        cc_stat = self.last_valid_cc_stat
+    else:
+      self.acc_fault_frames = 0
+      self.last_valid_cc_stat = cc_stat
+
+    ret.cruiseState.enabled = cc_stat in (4, 5)
+    ret.cruiseState.available = True if self.CP.carFingerprint == CAR.FORD_BRONCO_MK6 else cc_stat in (3, 4, 5)
     ret.cruiseState.nonAdaptive = cp.vl["Cluster_Info1_FD1"]["AccEnbl_B_RqDrv"] == 0
     ret.cruiseState.standstill = cp.vl["EngBrakeData"]["AccStopMde_D_Rq"] == 3
-    ret.accFaulted = cp.vl["EngBrakeData"]["CcStat_D_Actl"] in (1, 2)
+    ret.accFaulted = cc_stat in (1, 2)
     if not self.CP.openpilotLongitudinalControl:
       ret.accFaulted = ret.accFaulted or cp_cam.vl["ACCDATA"]["CmbbDeny_B_Actl"] == 1
 
