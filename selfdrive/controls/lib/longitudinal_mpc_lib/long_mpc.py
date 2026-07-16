@@ -74,13 +74,13 @@ def get_jerk_factor(personality=log.LongitudinalPersonality.standard):
 
 def get_T_FOLLOW(personality=log.LongitudinalPersonality.standard):
   # Following gap reduced from prior fork values per driver request.
-  # aggressive raised 0.50->0.65 after road test (0.50 got too close on sudden lead braking).
+  # aggressive tuned by road test: 0.50 was too close on sudden braking, 0.65 a touch far -> 0.60.
   if personality==log.LongitudinalPersonality.relaxed:
     return 0.83
   elif personality==log.LongitudinalPersonality.standard:
     return 0.67
   elif personality==log.LongitudinalPersonality.aggressive:
-    return 0.65
+    return 0.60
   else:
     raise NotImplementedError("Longitudinal personality not supported")
 
