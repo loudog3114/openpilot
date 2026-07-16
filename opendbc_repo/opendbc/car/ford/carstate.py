@@ -9,10 +9,12 @@ ButtonType = structs.CarState.ButtonEvent.Type
 GearShifter = structs.CarState.GearShifter
 TransmissionType = structs.CarParams.TransmissionType
 
-# The Ford PCM briefly reports a cruise fault (CcStat_D_Actl in (1, 2)) for a frame or two while
-# transitioning cruise states, e.g. resuming shortly after a cancel. Debounce it so these transients
-# don't immediately disengage. ~0.3s at the 100Hz carState rate; a real fault persists and still disengages.
-ACC_FAULT_DEBOUNCE_FRAMES = 30
+# The Ford PCM briefly reports a cruise fault (CcStat_D_Actl in (1, 2)) while transitioning cruise
+# states, e.g. resuming shortly after a cancel or a brake tap. Measured transients: ~90ms on a
+# button-cancel resume, but up to ~350ms on a brake-then-resume (36 frames at 100Hz). Debounce so
+# these do not immediately disengage. 50 frames (~0.5s) covers the 350ms brake transient with margin;
+# a genuine, sustained ACC fault persists past this and still disengages.
+ACC_FAULT_DEBOUNCE_FRAMES = 50
 
 
 class CarState(CarStateBase):
