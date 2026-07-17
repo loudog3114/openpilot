@@ -9,12 +9,12 @@ ButtonType = structs.CarState.ButtonEvent.Type
 GearShifter = structs.CarState.GearShifter
 TransmissionType = structs.CarParams.TransmissionType
 
-# CcStat_D_Actl values (from DBC): 5=Active, 4=Active_Que_Assist, 3=Standby, 2=Standby_Denied,
-# 1=Denied, 0=Off. On a brake-then-resume the Ford PCM briefly reports Standby_Denied (2) - a
-# transient denial, not a real ACC fault - for up to ~0.6s (measured 55-59 frames / 540-582ms at
-# 100Hz; button-cancel transients are shorter, ~90ms). We hold the last engaged state through these
-# so a blip does not disengage. 80 frames (~0.8s) covers the observed brake transient with margin.
-ACC_FAULT_DEBOUNCE_FRAMES = 80
+# The Ford PCM briefly reports a cruise fault (CcStat_D_Actl in (1, 2)) while transitioning cruise
+# states, e.g. resuming shortly after a cancel or a brake tap. Measured transients: ~90ms on a
+# button-cancel resume, but up to ~350ms on a brake-then-resume (36 frames at 100Hz). Debounce so
+# these do not immediately disengage. 50 frames (~0.5s) covers the 350ms brake transient with margin;
+# a genuine, sustained ACC fault persists past this and still disengages.
+ACC_FAULT_DEBOUNCE_FRAMES = 50
 
 
 class CarState(CarStateBase):
@@ -72,8 +72,7 @@ class CarState(CarStateBase):
     is_metric = cp.vl["INSTRUMENT_PANEL"]["METRIC_UNITS"] == 1 if not self.CP.flags & FordFlags.CANFD else False
     ret.cruiseState.speed = cp.vl["EngBrakeData"]["Veh_V_DsplyCcSet"] * (CV.KPH_TO_MS if is_metric else CV.MPH_TO_MS)
 
-    # Debounce transient PCM cruise-denied states (Denied=1, Standby_Denied=2) so a brief blip on a
-    # resume or brake-then-resume does not immediately disengage; hold the last engaged state.
+    # Debounce transient PCM cruise-fault states so a brief blip on resume does not immediately disengage.
     cc_stat = cp.vl["EngBrakeData"]["CcStat_D_Actl"]
     if cc_stat in (1, 2):
       self.acc_fault_frames += 1
@@ -87,11 +86,7 @@ class CarState(CarStateBase):
     ret.cruiseState.available = True if self.CP.carFingerprint == CAR.FORD_BRONCO_MK6 else cc_stat in (3, 4, 5)
     ret.cruiseState.nonAdaptive = cp.vl["Cluster_Info1_FD1"]["AccEnbl_B_RqDrv"] == 0
     ret.cruiseState.standstill = cp.vl["EngBrakeData"]["AccStopMde_D_Rq"] == 3
-    # Only a genuine Denied (1) is treated as a fault. Standby_Denied (2) is the transient the Ford
-    # asserts after a brake-then-resume; it self-clears, so faulting on it caused a spurious
-    # 'pre-collision' disengage and a forced second resume press. If a real denial persists, enabled
-    # (above) already drops out of (4,5) and disengages normally without the fault alert.
-    ret.accFaulted = cc_stat == 1
+    ret.accFaulted = cc_stat in (1, 2)
     if not self.CP.openpilotLongitudinalControl:
       ret.accFaulted = ret.accFaulted or cp_cam.vl["ACCDATA"]["CmbbDeny_B_Actl"] == 1
 
