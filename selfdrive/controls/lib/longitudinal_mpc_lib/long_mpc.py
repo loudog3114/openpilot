@@ -72,17 +72,22 @@ def get_jerk_factor(personality=log.LongitudinalPersonality.standard):
     raise NotImplementedError("Longitudinal personality not supported")
 
 
-def get_T_FOLLOW(personality=log.LongitudinalPersonality.standard):
-  # Following gap reduced from prior fork values per driver request.
-  # aggressive tuned by road test: 0.50 was too close on sudden braking, 0.65 a touch far -> 0.60.
+def get_T_FOLLOW(personality=log.LongitudinalPersonality.standard, v_ego=None):
+  # Following gap. City values kept as before; highway values reduced per driver request
+  # ("moderate" package) via a speed-dependent ramp between ~45 mph (20 m/s) and ~65 mph (29 m/s).
+  # Below ~45 mph the city value is used; at/above ~65 mph the highway value is used.
+  # aggressive city value tuned by road test: 0.50 was too close on sudden braking, 0.65 a touch far -> 0.60.
   if personality==log.LongitudinalPersonality.relaxed:
-    return 0.83
+    t_follow_city, t_follow_hwy = 0.83, 0.73
   elif personality==log.LongitudinalPersonality.standard:
-    return 0.67
+    t_follow_city, t_follow_hwy = 0.67, 0.57
   elif personality==log.LongitudinalPersonality.aggressive:
-    return 0.60
+    t_follow_city, t_follow_hwy = 0.60, 0.50
   else:
     raise NotImplementedError("Longitudinal personality not supported")
+  if v_ego is None:
+    return t_follow_city
+  return float(np.interp(v_ego, [20.0, 29.0], [t_follow_city, t_follow_hwy]))
 
 def get_stopped_equivalence_factor(v_lead):
   return (v_lead**2) / (2 * COMFORT_BRAKE)
@@ -92,7 +97,7 @@ def get_safe_obstacle_distance(v_ego, t_follow):
 
 def desired_follow_distance(v_ego, v_lead, t_follow=None):
   if t_follow is None:
-    t_follow = get_T_FOLLOW()
+    t_follow = get_T_FOLLOW(v_ego=v_ego)
   return get_safe_obstacle_distance(v_ego, t_follow) - get_stopped_equivalence_factor(v_lead)
 
 
@@ -333,8 +338,8 @@ class LongitudinalMpc:
     return lead_xv
 
   def update(self, radarstate, v_cruise, x, v, a, j, personality=log.LongitudinalPersonality.standard):
-    t_follow = get_T_FOLLOW(personality)
     v_ego = self.x0[1]
+    t_follow = get_T_FOLLOW(personality, v_ego)
     self.status = radarstate.leadOne.status or radarstate.leadTwo.status
 
     lead_xv_0 = self.process_lead(radarstate.leadOne)
