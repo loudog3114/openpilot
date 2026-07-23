@@ -73,16 +73,16 @@ def get_jerk_factor(personality=log.LongitudinalPersonality.standard):
 
 
 def get_T_FOLLOW(personality=log.LongitudinalPersonality.standard, v_ego=None):
-  # Following gap. City values kept as before; highway values reduced per driver request
-  # ("moderate" package) via a speed-dependent ramp between ~45 mph (20 m/s) and ~65 mph (29 m/s).
+  # Following gap via a speed-dependent ramp between ~45 mph (20 m/s) and ~65 mph (29 m/s).
   # Below ~45 mph the city value is used; at/above ~65 mph the highway value is used.
-  # aggressive city value tuned by road test: 0.50 was too close on sudden braking, 0.65 a touch far -> 0.60.
+  # City values raised per driver request ("moderate" +0.20) for more low-speed room; highway
+  # values kept at the reduced ("moderate") settings for closer highway following.
   if personality==log.LongitudinalPersonality.relaxed:
-    t_follow_city, t_follow_hwy = 0.83, 0.73
+    t_follow_city, t_follow_hwy = 1.03, 0.73
   elif personality==log.LongitudinalPersonality.standard:
-    t_follow_city, t_follow_hwy = 0.67, 0.57
+    t_follow_city, t_follow_hwy = 0.87, 0.57
   elif personality==log.LongitudinalPersonality.aggressive:
-    t_follow_city, t_follow_hwy = 0.60, 0.50
+    t_follow_city, t_follow_hwy = 0.80, 0.50
   else:
     raise NotImplementedError("Longitudinal personality not supported")
   if v_ego is None:
